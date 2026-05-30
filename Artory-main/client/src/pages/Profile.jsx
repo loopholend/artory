@@ -8,7 +8,7 @@ import ImageViewerModal from '../components/ImageViewerModal';
 import ReportButton from '../components/ReportButton';
 import ArtistReviewSection from '../components/ArtistReviewSection';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:8080';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -71,20 +71,27 @@ export default function Profile() {
     const fetchProfile = async () => {
       try {
         const targetId = id || user?._id;
-        if (!targetId) return;
-        const res = isOwnProfile ? await api.get('/auth/me') : await api.get(`/auth/user/${targetId}`);
-        setProfile(res.data);
-        setArtworks(res.data.artworks || []);
-        if (isOwnProfile) {
-          setForm({ username: res.data.username, bio: res.data.bio || '', skills: (res.data.skills || []).join(', ') });
-        } else {
-          setIsFollowing(res.data.followers?.some(f => f._id === user?._id));
+        if (!targetId && !isOwnProfile) {
+          setProfile({});
+          return;
         }
-      } catch {
-        toast.error('Could not load identity check');
+        const res = isOwnProfile ? await api.get('/auth/me') : await api.get(`/auth/user/${targetId}`);
+        const data = res.data;
+        setProfile(data);
+        setArtworks(data.artworks || []);
+        if (isOwnProfile) {
+          setForm({ username: data.username || '', bio: data.bio || '', skills: (data.skills || []).join(', ') });
+        } else {
+          setIsFollowing(data.followers?.some(f => (f._id || f) === user?._id));
+        }
+      } catch (err) {
+        console.warn('Profile fetch failed:', err?.response?.status);
+        // Set empty profile so we don't stay stuck in loading
+        setProfile({ username: user?.username || 'Unknown', bio: '', skills: [], artworks: [] });
       }
     };
-    fetchProfile();
+    if (user || id) fetchProfile();
+    else setProfile({ username: 'Guest', bio: '', skills: [], artworks: [] });
   }, [id, user, isOwnProfile]);
 
   useEffect(() => {
