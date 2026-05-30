@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.DS_Store
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.settings/
+.classpath
+.project
